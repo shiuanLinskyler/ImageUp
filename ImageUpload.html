@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>圖片裁切工具 - js練習</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
+    <script src="js/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.10.2/dist/umd/popper.min.js" integrity="sha384-7+zCNj/IqJ95wo16oMtfsKbZ9ccEh31eOz1HGyDuCQ6wgnyJNSYdrPa03rtR1zdB" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.min.js" integrity="sha384-QJHtvGhmr9XOIpI6YVutG+2QOK9T+ZnN4kzFN1RtK3zEFEIsxhlmWl5/YESvpZ13" crossorigin="anonymous"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css?v=2022">
+</head>
+<body>
+    <nav class="navbar navbar-light bg-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">圖片裁切工具</a>
+        </div>
+    </nav>
+    <div>
+        <div class="m-5 mx-auto text-center" id="ImgContent">
+            <input type="hidden" id="bodyWidth" value="500">
+            <!-- 上下左右 -->
+            <div class="btn_xy">
+                <button type="button" class="btn btn-light" data-action="left"><i class="fa-solid fa-left-long"></i></button>
+                <button type="button" class="btn btn-light" data-action="up"><i class="fa-solid fa-up-long"></i></button>
+                <button type="button" class="btn btn-light" data-action="down"><i class="fa-solid fa-down-long"></i></button>
+                <button type="button" class="btn btn-light" data-action="right"><i class="fa-solid fa-right-long"></i></button>
+           </div>
+            <!-- 圖片上傳區塊 -->
+            <div class="border_style mb-3 mx-auto w-md-500x" id="border_style">
+                <div class="image_up" id="preview_show">
+                    <label for="fileimg" id="ImageUpload">
+                        <i class="fa-solid fa-plus"></i>
+                    </label>
+                    <img src="" id="previewImg">
+                </div>
+            </div>
+
+            <div class="w-md-500x mx-auto px-3">
+                <!-- 放大縮小 -->
+                <input type="range" class="form-range mb-3 d-none" min="0" max="6" id="ScaleSize">
+                <!-- 手動放大縮小 -->
+                <div class="d-flex btn_Zoom justify-content-center mb-3">
+                    <button type="button" class="btn btn-light me-1" data-action="Zoom"><i class="fa-solid fa-magnifying-glass-plus" data-action="Zoom"></i></button>
+                    <button type="button" class="btn btn-light" data-action="Zoomout"><i class="fa-solid fa-magnifying-glass-minus" data-action="Zoomout"></i></button>
+                </div>
+                <!-- 圖片尺寸說明顯示 -->
+                <div class="d-none" id="ImgSize"></div>
+
+                <div class="btn-group Btn_Group d-none mx-auto" role="group" aria-label="Basic example" id="Btn_Group">
+                    <button type="button" class="btn btn-secondary" data-action="changeImg"><i class="fa-solid fa-arrow-up-from-bracket"></i> <span>更換圖片</span></button>
+                    <button type="button" class="btn btn-secondary" data-action="WidthSize"><i class="fa-solid fa-expand"></i> <span>符合大小</span></button>
+                    <button type="button" class="btn btn-secondary" data-action="DelImg"><i class="fa-solid fa-trash-can"></i> <span>移除</span></button>
+                    <button type="button" class="btn btn-secondary" data-action="downloadImg"><i class="fa-solid fa-download"></i> <span>下載</span></button>
+                    <button type="button" class="btn btn-secondary" data-action="recovery"><i class="fa-solid fa-arrows-rotate"></i> <span>復原</span></button>
+                </div>
+                <div class="mt-3 d-flex">
+                    <button type="button" class="btn btn-outline-secondary btn-sm ms-auto" id="clearbtn">清除</button>
+                    <button type="button" class="btn btn-secondary btn-sm ms-2" id="Applybtn">套用</button>
+                </div>
+                <div class="mt-3 row">
+                    <label for="staticWidth" class="col-sm-2 col-form-label text-start">寬度</label>
+                    <div class="col-sm-10">
+                    <input type="number" class="form-control" id="staticWidth">
+                    </div>
+                </div>
+                <div class="mt-3 row">
+                    <label for="inputHeight" class="col-sm-2 col-form-label text-start">高度</label>
+                    <div class="col-sm-10">
+                    <input type="number" class="form-control" id="inputHeight">
+                    </div>
+                </div>
+                <div class="mt-3 row">
+                    <label for="filenames" class="col-sm-2 col-form-label text-start">檔名</label>
+                    <div class="col-sm-10">
+                    <input type="text" class="form-control" id="filenames">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- 上傳圖片本體 -->
+        <input type="file" id="fileimg" class="d-none">
+    </div>
+    <script>
+        //drawImage(圖片, 0, 0, 圖片寬度, 圖片高度)
+        //canvas.toBlob(回傳函數, 檔案格式, 壓縮比例)
+        //canvas.toBlob(callback, "image/jpeg", 0.8)
+        //如果檔案類型用 png、gif 檔是不能壓縮的，設定了壓縮比例會被無視。
+        //取得圖片
+        const fileimg = document.getElementById('fileimg');
+        const ImgContent = document.getElementById('ImgContent'); //圖片區塊
+        const previewshow = document.getElementById('preview_show'); //圖片區塊
+        const previewImg = document.getElementById('previewImg'); //預覽圖片顯示
+        const ImgSize = document.getElementById('ImgSize'); // 圖片尺寸說明
+        const Btn_Group = document.getElementById('Btn_Group'); //按鈕群組
+        const ImageUpload = document.getElementById('ImageUpload'); //上傳按鈕 label
+        const BropBox = document.getElementById('BropBox'); //圖片剪裁
+        const ScaleSize = document.getElementById('ScaleSize'); //圖片放大縮小
+        const borderstyle = document.getElementById('border_style'); //圖片放大縮小
+        const bodyWidth = document.getElementById('bodyWidth'); //外寬寬度
+        const staticWidth = document.getElementById('staticWidth'); //外寬寬度
+        const inputHeight = document.getElementById('inputHeight'); //外寬高度
+        const filenames = document.getElementById('filenames'); //檔案名稱
+        const Applybtn = document.getElementById('Applybtn'); //套用
+        const clearbtn = document.getElementById('clearbtn'); //清除套用
+        let Catch = false; //控制圖片移動的判定
+        //設定基礎寬度
+        let OriginalW = 500;
+        //圖片的寬高
+        let Imgwidth = 0;
+        let Imgheight = 0;
+        //新的圖片名稱
+        let ImgName = "";
+        //放大基礎倍數
+        let ZoomNumber = 1.2;
+        //工具顯示設定
+        let toolbottom = true; //更換圖片與符合大小、下載按鈕
+        let toolSize = true; //手動放大縮小的功能開啟
+        let Sizecomment = true; //圖片大小資訊
+
+        //監聽目前上傳的圖片
+        fileimg.addEventListener('change', event =>{
+            let target = event.target;
+            //如果圖片沒有真的上傳，不去計算大小
+            if(target.files.length > 0)
+            {
+                //取消圖片尺寸顯示
+                ImgSize.innerHTML = "";
+                if(Sizecomment)
+                {
+                    ImgSize.classList.remove('d-none');
+                    //取得圖片資料換算圖片大小
+                    let files = target.files[0];
+                    let fileSize = files.size / 1024; //KB換算
+                    let MbSize = fileSize / 1024; //Mb換算
+                    let ShowSize = MbSize < 1 ? Math.floor(fileSize * 100) / 100 + "KB" : Math.floor(MbSize * 100) / 100 + "MB" ;
+                    let pTag = document.createElement('p');
+                    pTag.textContent = "原始大小 : " + ShowSize;
+                    pTag.style.marginBottom = "10px";
+                    ImgSize.appendChild(pTag);
+                }
+
+                // 進入預覽的功能
+                readURL(target);
+            }
+        });
+
+        //重新上傳圖片
+        if(toolbottom)
+        {
+            //移動圖片上下距離的區間
+            let moveNumber = 10;
+            Btn_Group.classList.remove('d-none');
+            document.body.addEventListener('click', event =>{
+                let target = event.target;
+                let action = ('action' in target.dataset) ? target.dataset.action : false;
+                //console.log(target);
+                //console.log(action);
+                switch(action)
+                {
+                    case "changeImg":
+                        //重新上傳圖片
+                        ImageUpload.click();
+                        break;
+                    case "WidthSize":
+                        //符合圖片
+                        //previewImg.style.transform = "scale(1)";
+                        previewImg.style.width = '100%';
+                        //previewImg.style.width = bodyWidth.value + 'px';
+                        previewImg.style.top = 0;
+                        previewImg.style.left = 0;
+                        //console.log(bodyWidth.value);
+                    break;
+                    case "DelImg":
+                        //移除圖片
+                        swal({
+                            title: "確定要移除圖片?",
+                            text: "請再次確認!",
+                            icon: "warning",
+                            buttons: true,
+                            dangerMode: true,
+                            })
+                            .then((willDelete) => {
+                            if (willDelete) {
+                                //將本體清空
+                                fileimg.value = "";
+                                previewImg.src = "";
+                                ImgSize.innerHTML = "";
+                                staticWidth.value = "";
+                                inputHeight.value = "";
+                                ImageUpload.classList.remove('d-none');
+                            }
+                        });
+                    break;
+                    case "recovery":
+                        staticWidth.value = '300px';
+                        inputHeight.value = '300px';
+                        borderstyle.style.width = '300px';
+                        previewshow.style.height = '300px';
+                    break;
+                    case "downloadImg":
+                        //執行下載程序
+                        downloadImg()
+                    break;
+                    //圖片微調 上下左右
+                    case "up":
+                        let upImgY = previewImg.offsetTop;
+                        let newupY = Number(upImgY) - moveNumber;
+                        previewImg.style.top = newupY + "px";
+                    break;
+                    case "down":
+                        let downImgY = previewImg.offsetTop;
+                        let newdownY = Number(downImgY) + moveNumber;
+                        previewImg.style.top = newdownY + "px";
+                    break;
+                    case "left":
+                        let leftImgX = previewImg.offsetLeft;
+                        let newleftX = Number(leftImgX) - moveNumber;
+                        previewImg.style.left = newleftX + "px";
+                    break;
+                    case "right":
+                        let rightImgX = previewImg.offsetLeft;
+                        let newrightX = Number(rightImgX) + moveNumber;
+                        previewImg.style.left = newrightX + "px";
+                    break;
+                    case "Zoom":
+                        //放大 ZoomNumber
+                        let oldWidth = previewImg.width;
+                        previewImg.style.width = (Number(oldWidth) * ZoomNumber)+'px';
+                    break;
+                    case "Zoomout":
+                        //放大 ZoomNumber
+                        let oldwidths = previewImg.width;
+                        previewImg.style.width = (Number(oldwidths) / ZoomNumber)+'px';
+                    break;
+                }
+
+            });
+        }
+
+        //變更尺寸
+        Applybtn.onclick = function()
+        {
+            if(staticWidth.value >  0 && inputHeight.value >  0)
+            {
+                let widths = staticWidth.value;
+                let heights = inputHeight.value;
+                // let widths = staticWidth.value >  0 ? staticWidth.value : 500;
+                // let heights = inputHeight.value > 0 ? inputHeight.value : 500;
+                //console.log(widths);
+                //console.log(ImgContent);
+                OriginalW = widths;
+                // bodyWidth.value = widths + 'px';
+                // ImgContent.style.width = widths + 'px';
+                borderstyle.style.width = widths + 'px';
+                previewshow.style.width = widths + 'px';
+                previewshow.style.height = heights + 'px';
+            }
+        }
+
+        //清除
+        clearbtn.onclick = function ()
+        {
+            staticWidth.value = "";
+            inputHeight.value = "";
+            filenames.value = "";
+        }
+
+
+        function readURL(input){
+            if(input.files && input.files[0]){
+                // 這就是此預覽功能的重點，JavaScript預設提供這個Object。
+                // https://developer.mozilla.org/en-US/docs/Web/API/FileReader/FileReader
+                // https://developer.mozilla.org/en/docs/Web/API/FileReader
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    previewImg.src = e.target.result;
+                    // previewImg.style.backgroundImage = `url('${e.target.result}')`;
+                    // previewImg.style.backgroundSize = '100% auto';
+                    // previewImg.style.backgroundRepeat = 'no-repeat';
+                }
+                reader.readAsDataURL(input.files[0]);
+                ImageUpload.classList.add('d-none'); //先隱藏畫面上的上傳區塊
+                setTimeout(function(){
+                    ImagesShow()
+                    previewImg.style.top = 0;
+                    previewImg.style.left = 0;
+                },500)
+            }
+        }
+
+        //顯示圖片
+        function ImagesShow()
+        {
+            //獲得尺寸
+            Imgwidth = previewImg.width;
+            Imgheight = previewImg.height;
+            let pTag = document.createElement('p');
+            pTag.textContent = "原始尺寸 : " + Imgwidth + " x " + Imgheight;
+            pTag.style.marginBottom = "10px";
+            ImgSize.appendChild(pTag);
+            //console.log(Imgheight);
+        }
+
+        //監聽圖片被抓住 - 移動
+        function ImageMove(event)
+        {
+            //計算上方到圖區的距離
+            let previewshowTop = previewshow.offsetTop;
+            let previewshowLeft = previewshow.offsetLeft;
+            let previewImgTop = previewImg.offsetTop;
+
+            let ImgH = Math.floor(previewImg.height / 2);
+            let ImgW = Math.floor(previewImg.width / 2);
+
+            //console.log(" pageY " + event.pageY);
+            //console.log(" pageX " + event.pageX);
+            //console.log(" ImgH " + ImgH);
+            //console.log(" ImgW " + ImgW);
+
+            //console.log(" previewImgTop " + previewImgTop);
+            //console.log(" 內容距離 " + (Number(event.pageY) - Number(previewshowTop)));
+
+
+            let imgY = (Number(event.pageY) - Number(previewshowTop));
+            let imgX = (Number(event.pageX) - Number(previewshowLeft));
+
+            //console.log(" event.pageX " + event.pageX);
+            //console.log(" previewshowLeft " + previewshowLeft);
+            //console.log(imgX);
+
+            //previewImg.style.top = imgY + "px";
+
+            previewImg.style.top = Number(imgY - ImgH) + "px";
+            previewImg.style.left = Number(imgX - ImgW) + "px";
+
+            // 扣掉圖片的寬度中心位置，與座標的範圍 97 ~ 249 變成 0 ~ 152
+            //previewImg.style.top = (event.pageY - ImgH - previewshowTop) + "px";
+            // 扣掉圖片的寬度中心位置，與座標的範圍 100 ~ 297 變成 0 ~ 197
+            //previewImg.style.left = (event.pageX - ImgW - previewshowLeft) + "px";
+        }
+
+        //圖片被監聽
+        previewImg.onclick = function(event)
+        {
+            //console.log("滑鼠位置");
+            //console.log(Number(event.pageY) - 106);
+            if(Catch)
+            {
+                Catch = false;
+                document.querySelector('body').classList.remove('moveStyle');
+                previewshow.removeEventListener("mousemove", ImageMove, false);
+                previewshow.removeEventListener("mouseenter", ImageMove, false);
+                previewshow.removeEventListener("mouseleave", ImageMove, false);
+            }
+            else
+            {
+                Catch = true;
+                document.querySelector('body').classList.add('moveStyle');
+                previewshow.addEventListener("mousemove", ImageMove, false);
+                previewshow.addEventListener("mouseenter", ImageMove, false);
+                previewshow.addEventListener("mouseleave", ImageMove, false);
+            }
+        }
+
+        //執行放大縮小 - 監聽
+        previewImg.addEventListener('wheel', zoom, { passive: false });
+        let scale = 1;
+        function zoom(event) {
+            event.preventDefault();
+            scale = event.deltaY; // 取得圖片Y軸
+            ////console.log(scales);
+            //previewImg.style.transform = `scale(1,2)`;
+            let sum = previewImg.width + scale;
+            // 如果圖片小於 200 就不能在縮小
+            Imgwidth = (previewImg.width + scale) < OriginalW ? OriginalW : previewImg.width + scale;
+            // 寫回處裡過後的圖片大小
+            previewImg.width = Imgwidth;
+        }
+
+        //手動放大縮小
+        // if(toolSize)
+        // {
+        //     ScaleSize.classList.remove('d-none');
+        //     ScaleSize.addEventListener('change', event =>{
+        //         let target = event.target;
+        //         let values = target.value;
+        //         //console.log(values);
+        //         if(values > 3 )
+        //         {
+        //             previewImg.style.transform = `scale(${ values - 1 },${ values - 1})`;
+        //         }
+        //         else
+        //         {
+        //             let valueSum = ( values == 0 ) ? 0.1 : values - 0.5;
+        //             previewImg.style.transform = `scale(${valueSum},${valueSum})`;
+        //         }
+        //     });
+        // }
+
+
+        //執行截圖功能
+        function downloadImg()
+        {
+            //更改圖片名稱
+            let namefile = filenames.value;
+            if(namefile.trim() != "")
+            {
+                ImgName = namefile.trim();
+            }
+            else
+            {
+                ImgName = "";
+            }
+            //修改圖片名稱
+            let name = ImgName != "" ? ImgName+".jpg" : "file-name.jpg";
+            //利用截圖功能 - 來縮小圖片尺寸 (缺點是圖片解析度很差)
+            //但其他的圖片尺寸縮小好像不支援png
+            html2canvas(previewshow).then(canvas => {
+                //將圖檔另外去處理 (這邊是參考網路上的辦法)
+                simulateDownloadImage(canvas.toDataURL(), name);
+            });
+        }
+
+        //仿製 a link 假象用來下載
+        function simulateDownloadImage(uri, filename)
+        {
+            //產生 a link ，模擬下載的方式
+            let alink = document.createElement('a');
+            alink.href = uri;
+            alink.download = filename;
+            alink.click();
+        }
+    </script>
+</body>
+</html>
